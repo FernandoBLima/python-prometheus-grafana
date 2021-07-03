@@ -1,0 +1,45 @@
+version: "3" 
+
+services:  
+    prometheus:
+        container_name: prometheus
+        image: prom/prometheus:v2.28.0
+        ports:
+            - 9090:9090
+        volumes:
+            - "./prometheus.yml:/etc/prometheus/prometheus.yml"
+        networks:
+            - backend
+
+    api_1:
+        container_name: api1
+        build:
+            context: ./api
+            dockerfile: Dockerfile
+        depends_on:
+            - prometheus
+        ports:
+            - "5000:5000"
+        command: python app.py runserver 0.0.0.0:5000
+        networks:
+            - backend
+        # volumes:
+        #     - "./api/app.py:/app.py"
+
+    grafana:
+        container_name: grafana
+        image: grafana/grafana:7.5.9
+        ports:
+            - "3000:3000"
+        depends_on:
+            - api_1
+        environment:
+            - GF_AUTH_BASIC_ENABLED=false
+            - GF_AUTH_ANONYMOUS_ENABLED=true
+            - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+        networks:
+            - backend
+
+networks:
+    backend:
+        driver: bridge
